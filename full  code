@@ -1,0 +1,166 @@
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { createClient } from '@supabase/supabase-js';
+
+// Removed './index.css' import to fix missing file error
+// Styling can be done with Tailwind CSS classes
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const KLH_EMAIL_DOMAIN = import.meta.env.KLH_EMAIL_DOMAIN || '@klh.edu';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [videos, setVideos] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [title, setTitle] = useState('');
+  const [subject, setSubject] = useState('');
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) setUser(data.session.user);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    fetchVideos();
+
+    return () => listener?.subscription.unsubscribe();
+  }, []);
+
+  async function signIn() {
+    const email = prompt('Enter your college email:');
+    if (!email?.endsWith(KLH_EMAIL_DOMAIN)) {
+      alert(`Only ${KLH_EMAIL_DOMAIN} emails are allowed`);
+      return;
+    }
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) alert(error.message);
+    else alert('Check your email for a magic link.');
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setUser(null);
+  }
+
+  async function fetchVideos() {
+    const { data, error } = await supabase.from('videos').select('*').order('created_at', { ascending: false });
+    if (error) console.error(error);
+    else setVideos(data || []);
+  }
+
+  async function handleUpload(e) {
+    e.preventDefault();
+    if (!file) return alert('Select a file');
+    if (!user) return alert('Login first');
+
+    setUploading(true);
+    try {
+      const path = `${user.id}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('videos').upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { error: insertError } = await supabase.from('videos').insert([{ owner: user.id, title, filename: path, subject }]);
+      if (insertError) throw insertError;
+
+      setTitle('');
+      setSubject('');
+      setFile(null);
+      fetchVideos();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function getVideoUrl(filename) {
+    const { data } = await supabase.storage.from('videos').createSignedUrl(filename, 60 * 60);
+    return data?.signedUrl;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <header className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">KLH Peer Learning Network</h1>
+        <div>
+          {user ? (
+            <>
+              <span className="mr-4">{user.email}</span>
+              <button onClick={signOut} className="btn">Sign out</button>
+            </>
+          ) : (
+            <button onClick={signIn} className="btn">Sign in (college email)</button>
+          )}
+        </div>
+      </header>
+
+      <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="col-span-1 p-4 bg-white rounded shadow">
+          <h2 className="font-semibold mb-2">Upload Video</h2>
+          <form onSubmit={handleUpload} className="space-y-2">
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="input" required />
+            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className="input" required />
+            <input type="file" onChange={e => setFile(e.target.files[0])} required />
+            <button type="submit" className="btn" disabled={uploading}>{uploading ? 'Uploading...' : 'Upload'}</button>
+          </form>
+        </section>
+
+        <section className="col-span-2">
+          <h2 className="font-semibold mb-2">All Campus Videos</h2>
+          <div className="space-y-4">
+            {videos.map(video => (
+              <VideoCard key={video.id} video={video} getVideoUrl={getVideoUrl} />
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function VideoCard({ video, getVideoUrl }) {
+  const [url, setUrl] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    getVideoUrl(video.filename).then(signedUrl => { if (mounted) setUrl(signedUrl); });
+    return () => { mounted = false; };
+  }, [video]);
+
+  return (
+    <div className="p-4 bg-white rounded shadow">
+      <div className="flex justify-between">
+        <div>
+          <h3 className="font-bold">{video.title}</h3>
+          <p className="text-sm text-gray-600">{video.subject} — uploaded {new Date(video.created_at).toLocaleString()}</p>
+        </div>
+        <button onClick={() => setOpen(!open)} className="btn">{open ? 'Close' : 'Watch'}</button>
+      </div>
+      {open && url && (
+        <div className="mt-4">
+          <video controls src={url} className="w-full max-h-96" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Wrap render in window load event to ensure #root exists
+window.addEventListener('load', () => {
+  const container = document.getElementById('root');
+  if (container) {
+    const root = createRoot(container);
+    root.render(<App />);
+  } else {
+    console.error('#root element not found in DOM');
+  }
+});
