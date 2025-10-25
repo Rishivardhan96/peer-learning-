@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KLH Peer Learning Network</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Use the Inter font */
+    body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <!-- Preconnect for Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto max-w-4xl px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-blue-600">KLH Peer Learning</div>
+            <div>
+                <a href="#" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">Home</a>
+                <a href="#" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">About</a>
+                <a h…ded-md font-medium">Login</a>
+            </div>
+  </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto max-w-4xl px-6 py-12">
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+            <h1 class="text-4xl font-bold mb-4">Welcome to the KLH Peer Learning Network!</h1>
+            <p class="text-lg text-gray-700 mb-6">
+                This is a simple static landing page. It's built to show what the platform is about.
+            </p> 
+            <p class="text-gray-700 mb-4">
+                The full application (with video uploads and user logins) is the React project we built earlier. This HTML page is just a front-facing welcome screen.
+            </p>
+            
+            <button class="bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">
+                Go to App
+            </button>
+        </div>
+    </main>
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 py-8">
+        &copy; 2025 KLH Peer Learning Network.
+    </footer>
+
+</body>
+</html>
+
